@@ -22,6 +22,47 @@ from Neo4jConnectionManager import Neo4jConnectionManager
 #         st.error(f"Connection Error: {e}")
 #         return None
 
+COLORS = ['#0072B2',    # Blue
+        '#E69F00',    # Orange
+        '#009E73',    # Bluish Green
+        '#CC79A7',    # Pink
+        '#56B4E9',    # Sky Blue
+        '#F0E442',    # Yellow
+        '#D55E00',    # Vermilion
+        '#332288',    # Dark Blue
+        '#44AA99',    # Teal
+        '#882255'     # Dark Pink
+        ]
+
+def create_legend_html(category_colors):
+    legend_html = """
+    <div style='
+        position: absolute; 
+        top: 10px; 
+        right: 10px; 
+        background: rgba(255,255,255,1); 
+        padding: 10px; 
+        border-radius: 5px;
+    '>
+        <h4>Category Legend</h4>
+    """
+    
+    for category, color in category_colors.items():
+        legend_html += f"""
+        <div style='display: flex; align-items: center; margin-bottom: 5px;'>
+            <div style='
+                width: 20px; 
+                height: 20px; 
+                background-color: {color}; 
+                margin-right: 10px;
+            '></div>
+            {category}
+        </div>
+        """
+    
+    legend_html += "</div>"
+    return legend_html
+
 def create_tool_visualization(order_by='category'):
     """Query to fetch all Tool nodes and group them (order by)
     
@@ -57,7 +98,6 @@ def create_tool_visualization(order_by='category'):
         'category': categories,
         'owner': owners
     }
-
     
     # Add nodes and edges
     for record in tools:
@@ -98,21 +138,11 @@ def create_tool_visualization(order_by='category'):
                   font_color="white", 
                   directed=False)
     
-    # Expanded colorblind-friendly color palette
-    colors = ['#0072B2',    # Blue
-            '#E69F00',    # Orange
-            '#009E73',    # Bluish Green
-            '#CC79A7',    # Pink
-            '#56B4E9',    # Sky Blue
-            '#F0E442',    # Yellow
-            '#D55E00',    # Vermilion
-            '#332288',    # Dark Blue
-            '#44AA99',    # Teal
-            '#882255'     # Dark Pink
-            ]
-    category_colors = {ordby: colors[i % len(colors)] 
+    category_colors = {ordby: COLORS[i % len(COLORS)] 
                        for i, ordby in enumerate(characteristics[order_by].keys())}
-    category_colors['Uncategorized'] = '#GRAY'
+    category_colors['N/A'] = '#ff00001a'
+    
+    legend_html = create_legend_html(category_colors)
     
     # Add grouping characteristic nodes with custom styling
     for node in G.nodes():
@@ -120,13 +150,13 @@ def create_tool_visualization(order_by='category'):
         if node_type == order_by:
             # Larger nodes for grouping attribute
             net.add_node(node, 
-                         color=category_colors.get(node, '#GRAY'), 
+                         color=category_colors.get(node, '#ff00001a'), 
                          size=50,
                          label=node, 
                          title=node)
         else:
             # Smaller nodes for tools, colored by grouping characteristic
-            category = G.nodes[node].get(order_by, 'Uncategorized')
+            category = G.nodes[node].get(order_by, 'N/A')
             popup_title = ""
             props = G.nodes[node].get('properties', {})
             for property_name in properties_to_display:
@@ -141,6 +171,15 @@ def create_tool_visualization(order_by='category'):
     # Add edges
     for edge in G.edges():
         net.add_edge(edge[0], edge[1])
+        
+    # Add Legend
+    # legend_text = "\n".join([
+    #     f"{ordby}: {color}" for ordby, color in category_colors.items()
+    # ])
+    # net.add_node('LEGEND', 
+    #              color='#FFFFFF', 
+    #              title=legend_text, 
+    #              size=30)
     
     # Physics options for better layout
     net.set_options('''
@@ -169,7 +208,7 @@ def create_tool_visualization(order_by='category'):
     }
     ''')
     
-    return net, categories, owners
+    return net, categories, owners, legend_html, category_colors
 
 # Streamlit Pages
 def overview_page():
@@ -188,7 +227,7 @@ def overview_page():
         st.header("Tools by Category")
         
         # Create graph visualization
-        graph_net, categories, owners = create_tool_visualization(order_by='category')
+        graph_net, categories, owners, legend_html, category_colors = create_tool_visualization(order_by='category')
         
         # Display graph using Streamlit's HTML component
         html_file_path = "tool_graph_byCategory.html"
@@ -224,18 +263,20 @@ def overview_page():
         """
         
         # Inject the click handler into the HTML
-        graph_html_with_click = graph_html.replace('</body>', click_script + '</body>')
+        graph_html_with_click_legend = graph_html.replace('</body>', 
+                                                   click_script + '</body>').replace('</body>', 
+                                                                                     legend_html + '</body>')
         
         # Display the graph
-        stc.html(graph_html_with_click, height=800, scrolling=True)
-        # st.html(graph_html_with_click)
-        # stc.iframe(graph_html_with_click, height=800)
+        stc.html(graph_html_with_click_legend, height=800, scrolling=True)
         
         # Additional overview statistics
-        # st.subheader("Quick Stats")
         df = pd.DataFrame.from_dict(categories, orient='index', columns=['Frequency'])
-        df.reset_index(names='Owner', inplace=True)
-        st.bar_chart(df, x='Owner', y='Frequency')
+        df.reset_index(names='Category', inplace=True)
+        for i in range(len(df)):
+            df.loc[i, 'Color'] = category_colors[df.loc[i, 'Category']]
+        df["Proportion"] = df["Frequency"]/df["Frequency"].sum()
+        st.bar_chart(df, x='Category', y='Proportion', color='Color')
         
     # with col2:
     #     # Node details display
@@ -269,7 +310,7 @@ def overview_page():
         st.header("Tools by Owner")
         
         # Create graph visualization
-        graph_net, categories, owners = create_tool_visualization(order_by='owner')
+        graph_net, categories, owners, legend_html, category_colors = create_tool_visualization(order_by='owner')
         
         # Display graph using Streamlit's HTML component
         html_file_path = "tool_graph_byOwner.html"
@@ -305,16 +346,20 @@ def overview_page():
         """
         
         # Inject the click handler into the HTML
-        graph_html_with_click = graph_html.replace('</body>', click_script + '</body>')
+        graph_html_with_click_legend = graph_html.replace('</body>', 
+                                                          click_script + '</body>').replace('</body>', 
+                                                                                     legend_html + '</body>')
         
         # Display the graph
-        stc.html(graph_html_with_click, height=800, scrolling=True)
+        stc.html(graph_html_with_click_legend, height=800, scrolling=True)
         
         # Additional overview statistics
-        # st.subheader("Quick Stats")
         df = pd.DataFrame.from_dict(owners, orient='index', columns=['Frequency'])
         df.reset_index(names='Owner', inplace=True)
-        st.bar_chart(df, x='Owner', y='Frequency')
+        for i in range(len(df)):
+            df.loc[i, 'Color'] = category_colors[df.loc[i, 'Owner']]
+        df["Proportion"] = df["Frequency"]/df["Frequency"].sum()
+        st.bar_chart(df, x='Owner', y='Proportion', color='Color')
 
 def explore_page():
     st.title("Explore Tools")
