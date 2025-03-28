@@ -1,0 +1,22 @@
+# Virtual environment
+venv/
+env/
+.env/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Streamlit specific
+.streamlit/secrets.toml
+
+# IDE files
+.vscode/
+.idea/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Miscellaneous
+*.log
+.DS_Store
