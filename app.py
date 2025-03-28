@@ -227,7 +227,7 @@ def overview_page():
         # stc.iframe(graph_html_with_click, height=800)
         
         # Additional overview statistics
-        st.subheader("Quick Stats")
+        # st.subheader("Quick Stats")
         df = pd.DataFrame.from_dict(categories, orient='index', columns=['Frequency'])
         df.reset_index(names='Owner', inplace=True)
         st.bar_chart(df, x='Owner', y='Frequency')
@@ -306,7 +306,7 @@ def overview_page():
         stc.html(graph_html_with_click, height=800, scrolling=True)
         
         # Additional overview statistics
-        st.subheader("Quick Stats")
+        # st.subheader("Quick Stats")
         df = pd.DataFrame.from_dict(owners, orient='index', columns=['Frequency'])
         df.reset_index(names='Owner', inplace=True)
         st.bar_chart(df, x='Owner', y='Frequency')
