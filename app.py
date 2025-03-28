@@ -57,7 +57,7 @@ def create_tool_visualization(order_by='category'):
         'category': categories,
         'owner': owners
     }
-    
+
     
     # Add nodes and edges
     for record in tools:
@@ -98,13 +98,18 @@ def create_tool_visualization(order_by='category'):
                   font_color="white", 
                   directed=False)
     
-    # Color palette
-    colors = ['#0072B2',  # Blue
-              '#E69F00',  # Orange
-              '#009E73',  # Bluish Green
-              '#CC79A7',  # Pink
-              '#56B4E9',  # Sky Blue
-              '#F0E442']  # Yellow
+    # Expanded colorblind-friendly color palette
+    colors = ['#0072B2',    # Blue
+            '#E69F00',    # Orange
+            '#009E73',    # Bluish Green
+            '#CC79A7',    # Pink
+            '#56B4E9',    # Sky Blue
+            '#F0E442',    # Yellow
+            '#D55E00',    # Vermilion
+            '#332288',    # Dark Blue
+            '#44AA99',    # Teal
+            '#882255'     # Dark Pink
+            ]
     category_colors = {ordby: colors[i % len(colors)] 
                        for i, ordby in enumerate(characteristics[order_by].keys())}
     category_colors['Uncategorized'] = '#GRAY'
